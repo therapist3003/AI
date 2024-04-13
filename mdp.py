@@ -1,21 +1,33 @@
-states=list(input("Enter the states of the MDP space separated :- ").split())
-actions=list(input("Enter the actions performed in each state space separated :- ").split())
-discount=float(input("Enter the discount factor :- "))
-reward={}
-for i in range(len(states)):
-    reward[states[i]]=int(input(f"Enter the reward value for state {states[i]} :-   "))
+def close(a, b, threshold):
+    for key in a:
+        if abs(a[key] - b[key]) >= threshold:
+            return False
+    return True
 
+states = input("Enter the states (space-separated): ").split()
+actions = input("Enter the actions at each state (space-separated): ").split()
+
+discount_factor = float(input("Enter discount factor: "))
+
+reward_dict={}
+for i in range(len(states)):
+    reward_dict[states[i]]=int(input('Enter the reward at state ' + states[i] + ' : '))
+
+# Key - State, Value - Dict (Key - Action Value - Dict (Key - To_state, Value - Probability) )
 prob_values={}
 for i in states:
-    t={}
+    # Key - Action , Value - Dict (Key - To_state, Value - Probability)
+    transition_probs =  {}
     for j in actions:
-        t1={}
-        while sum(t1.values())<1:
-            state_n=input(f"Enter the state reached ON {j} from {i} :- ")
-            prob_val=float(input(f"Enter the probability of the value P({state_n}|{i},{j}) :- "))
-            t1[state_n]=prob_val
-        t[j]=t1
-    prob_values[i]=t
+        # Key - To_state, Value - Probability
+        to_state_probabs={}
+        while sum(to_state_probabs.values())<1:
+            to_state = input('Enter the state reached from ' + i + ' by ACTION ' + j + ': ')
+            probab_val = float(input('Enter probability: '))
+            to_state_probabs[to_state] = probab_val
+        transition_probs[j] = to_state_probabs
+    prob_values[i] = transition_probs
+
 print(prob_values)
 
 # prob_values={'PU': {'A': {'PU': 0.5, 'PF': 0.5}, 
@@ -27,30 +39,36 @@ print(prob_values)
 #  'RU': {'A': {'PU': 0.5, 'PF': 0.5}, 
 #         'S': {'RU': 0.5, 'PU': 0.5}}}
 
-def close(a,b,thresh):
-    for key in a:
-        if abs(a[key] - b[key]) >= thresh:
-            return False
-    return True
+print('Undiscounted rewards: ')
+print(reward_dict)
 
-print(reward)
-res_rewards={}
-pass_no=0
-res_rewards[pass_no]=reward
-pass_no+=1
-while True:#tolerance value 0.05 maintained , if wanted this third value can be changed
-    x={}
-    for i in states:
-        t2={}
-        for j in prob_values[i]:
-            val=0
-            for k in prob_values[i][j]:
-                val+=prob_values[i][j][k]*res_rewards[pass_no-1][k]
-            t2[j]=val
-        x[i]=reward[i]+discount*max(t2.values())
-    res_rewards[pass_no]=x
-    if close(res_rewards[pass_no],res_rewards[pass_no-1],0.05):
+# Value Iteration Method
+# Key - State, Value - Discounted reward at each iteration
+res_rewards = {}
+iter_no = 0
+# Iteration 0
+res_rewards[iter_no] = reward_dict
+
+iter_no += 1
+
+while True:
+    # Current iteration rewards
+    curr_rewards = {}
+    for state in states:
+        # Temporary reward values for each action (to find max)
+        temp_reward_dict = {}
+        for action in prob_values[state]:
+            val = 0
+            for probab in prob_values[state][action]:
+                val += prob_values[state][action][probab] * res_rewards[iter_no-1][probab]
+            temp_reward_dict[action] = val
+        curr_rewards[state] = reward_dict[state] + discount_factor*max(temp_reward_dict.values())
+
+    res_rewards[iter_no] = curr_rewards
+
+    if close(res_rewards[iter_no], res_rewards[iter_no-1], 0.05):
         break
-    pass_no+=1
-for i in res_rewards:
-    print(i,":",res_rewards[i])
+    iter_no += 1
+
+for iter in res_rewards:
+    print('Iteration ', iter,": ", res_rewards[iter])
